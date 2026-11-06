@@ -107,54 +107,54 @@
       </div>
 
       <!-- Start Screen Overlay (主選單畫面) -->
-      <div id="startScreen" class="absolute inset-0 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-between p-6 text-center z-20">
-        <div class="my-auto flex flex-col items-center w-full">
-          <div id="startIconBg" class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-400 to-pink-500 flex items-center justify-center text-3xl text-slate-950 mb-3 shadow-lg shadow-amber-500/20 animate-bounce">
+      <div id="startScreen" class="absolute inset-0 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-between p-3 sm:p-6 text-center z-20 overflow-y-auto touch-pan-y">
+        <div class="my-auto flex flex-col items-center w-full py-2">
+          <div id="startIconBg" class="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-amber-400 to-pink-500 flex items-center justify-center text-xl sm:text-3xl text-slate-950 mb-2 sm:mb-3 shadow-lg shadow-amber-500/20 animate-bounce">
             <i id="startIcon" class="fa-solid fa-palette"></i>
           </div>
-          <h1 id="startTitle" class="text-2xl sm:text-3xl font-black text-white mb-1">色彩避障大冒險</h1>
-          <p id="startSubtitle" class="text-xs text-slate-400 mb-6">請選擇欲遊玩的遊戲模式：</p>
+          <h1 id="startTitle" class="text-xl sm:text-3xl font-black text-white mb-1">色彩避障大冒險</h1>
+          <p id="startSubtitle" class="text-[11px] sm:text-xs text-slate-400 mb-2 sm:mb-6">請選擇欲遊玩的遊戲模式：</p>
 
           <!-- 模式選擇按鈕組 -->
-          <div class="w-full max-w-xs space-y-2.5 mb-6">
-            <button id="selectStdBtn" class="mode-select-card w-full p-3 rounded-2xl bg-slate-900 border-2 border-amber-500 text-left flex items-center gap-3 transition cursor-pointer">
-              <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-xl font-bold">🎨</div>
+          <div class="w-full max-w-xs space-y-2 mb-3 sm:mb-6">
+            <button id="selectStdBtn" class="mode-select-card w-full p-2.5 sm:p-3 rounded-2xl bg-slate-900 border-2 border-amber-500 text-left flex items-center gap-2.5 sm:gap-3 transition cursor-pointer">
+              <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-base sm:text-xl font-bold">🎨</div>
               <div>
-                <div class="font-extrabold text-white text-sm">🎨 標準色彩模式</div>
-                <div class="text-[11px] text-slate-400">4色切換 / 考驗即時反應與對應能力</div>
+                <div class="font-extrabold text-white text-xs sm:text-sm">🎨 標準色彩模式</div>
+                <div class="text-[10px] sm:text-[11px] text-slate-400">4色切換 / 考驗即時反應與對應能力</div>
               </div>
             </button>
 
-            <button id="selectEasyBtn" class="mode-select-card w-full p-3 rounded-2xl bg-slate-900 border-2 border-transparent hover:border-slate-700 text-left flex items-center gap-3 transition cursor-pointer opacity-70">
-              <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xl font-bold">🌱</div>
+            <button id="selectEasyBtn" class="mode-select-card w-full p-2.5 sm:p-3 rounded-2xl bg-slate-900 border-2 border-transparent hover:border-slate-700 text-left flex items-center gap-2.5 sm:gap-3 transition cursor-pointer opacity-70">
+              <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-base sm:text-xl font-bold">🌱</div>
               <div>
-                <div class="font-extrabold text-white text-sm">🌱 簡單色彩模式</div>
-                <div class="text-[11px] text-slate-400">僅紅藍 2 色 / 超慢降落速度 / 輕鬆上手</div>
+                <div class="font-extrabold text-white text-xs sm:text-sm">🌱 簡單色彩模式</div>
+                <div class="text-[10px] sm:text-[11px] text-slate-400">僅紅藍 2 色 / 超慢降落速度 / 輕鬆上手</div>
               </div>
             </button>
 
-            <button id="selectRaceBtn" class="mode-select-card w-full p-3 rounded-2xl bg-slate-900 border-2 border-transparent hover:border-slate-700 text-left flex items-center gap-3 transition cursor-pointer opacity-70">
-              <div class="w-10 h-10 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-xl font-bold">🏎️</div>
+            <button id="selectRaceBtn" class="mode-select-card w-full p-2.5 sm:p-3 rounded-2xl bg-slate-900 border-2 border-transparent hover:border-slate-700 text-left flex items-center gap-2.5 sm:gap-3 transition cursor-pointer opacity-70">
+              <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-base sm:text-xl font-bold">🏎️</div>
               <div>
-                <div class="font-extrabold text-white text-sm">🏎️ 復古極速賽車</div>
-                <div class="text-[11px] text-slate-400">三線道飆車 / 躲避車輛 / 收集金幣與氮氣</div>
+                <div class="font-extrabold text-white text-xs sm:text-sm">🏎️ 復古極速賽車</div>
+                <div class="text-[10px] sm:text-[11px] text-slate-400">三線道飆車 / 躲避車輛 / 收集金幣與氮氣</div>
               </div>
             </button>
           </div>
 
-          <button id="startPlayBtn" class="w-full max-w-xs py-3.5 rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-500 hover:from-emerald-300 hover:to-teal-400 text-slate-950 font-black text-lg shadow-lg shadow-emerald-500/30 transition transform active:scale-95 flex items-center justify-center gap-2 cursor-pointer">
+          <button id="startPlayBtn" class="w-full max-w-xs py-3 rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-500 hover:from-emerald-300 hover:to-teal-400 text-slate-950 font-black text-base sm:text-lg shadow-lg shadow-emerald-500/30 transition transform active:scale-95 flex items-center justify-center gap-2 cursor-pointer">
             <i class="fa-solid fa-play"></i> 開始遊戲
           </button>
         </div>
 
-        <div class="text-[11px] text-slate-500 flex items-center gap-2">
+        <div class="text-[10px] sm:text-[11px] text-slate-500 flex items-center justify-center gap-1.5 py-1">
           <i class="fa-solid fa-keyboard text-slate-400"></i>
           <span>支援鍵盤方向鍵、WASD 及數字鍵 1-4 操控</span>
         </div>
       </div>
 
       <!-- Game Over Overlay -->
-      <div id="gameOverScreen" class="absolute inset-0 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-20 hidden">
+      <div id="gameOverScreen" class="absolute inset-0 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-20 overflow-y-auto touch-pan-y hidden">
         <div class="w-20 h-20 rounded-full bg-rose-500/20 border-2 border-rose-500/50 flex items-center justify-center text-3xl text-rose-500 mb-3 animate-pulse">
           <i class="fa-solid fa-flag-checkered"></i>
         </div>
