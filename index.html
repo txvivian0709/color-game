@@ -1,0 +1,1021 @@
+!DOCTYPE html>
+<h<tml lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>色彩避障大冒險 - Multi Mode & Keyboard Controls</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- QRCode.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <!-- Tone.js for Web Audio SFX -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@500;700&family=Noto+Sans+TC:wght@500;700;900&family=JetBrains+Mono:wght@700&display=swap');
+    
+    body {
+      font-family: 'Fredoka', 'Noto Sans TC', sans-serif;
+      touch-action: manipulation;
+      user-select: none;
+      background-color: #0b0f19;
+    }
+    
+    .canvas-container {
+      position: relative;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+    }
+
+    .shake {
+      animation: shake 0.3s cubic-bezier(.36,.07,.19,.97) both;
+    }
+
+    @keyframes shake {
+      10%, 90% { transform: translate3d(-3px, 0, 0); }
+      20%, 80% { transform: translate3d(5px, 0, 0); }
+      30%, 50%, 70% { transform: translate3d(-7px, 0, 0); }
+      40%, 60% { transform: translate3d(7px, 0, 0); }
+    }
+
+    /* 電腦鍵盤鍵帽風格 (3D Keycap Styling) */
+    .keycap {
+      font-family: 'JetBrains Mono', monospace;
+      background: linear-gradient(180deg, #334155 0%, #1e293b 100%);
+      box-shadow: 0 5px 0 #0f172a, 0 8px 12px rgba(0,0,0,0.4);
+      transition: all 0.05s ease;
+    }
+
+    .keycap:active, .keycap.key-active {
+      transform: translateY(4px);
+      box-shadow: 0 1px 0 #0f172a, 0 2px 4px rgba(0,0,0,0.4);
+      background: linear-gradient(180deg, #0284c7 0%, #0369a1 100%);
+      color: #ffffff !important;
+    }
+  </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen p-2 sm:p-4 text-white overflow-hidden select-none">
+
+  <!-- Main Game Outer Shell -->
+  <div class="w-full max-w-md flex flex-col items-center">
+    
+    <!-- Top Header Bar -->
+    <div class="w-full flex justify-between items-center bg-slate-900/90 backdrop-blur border border-slate-800 px-4 py-2.5 rounded-2xl mb-3 shadow-xl">
+      <div class="flex items-center gap-2">
+        <i id="gameIcon" class="fa-solid fa-palette text-amber-400 text-xl"></i>
+        <span id="gameTitleText" class="font-extrabold text-base sm:text-lg tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-amber-300">
+          色彩避障大冒險
+        </span>
+      </div>
+      <div class="flex items-center gap-2">
+        <!-- 模式切換按鈕 -->
+        <button id="modeSwitchBtn" class="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 px-3 py-1.5 rounded-xl font-black text-xs shadow-md transition active:scale-95 flex items-center gap-1 cursor-pointer">
+          <i id="modeBtnIcon" class="fa-solid fa-layer-group"></i> <span id="modeBtnText">切換模式</span>
+        </button>
+        <!-- QR Code 按鈕 -->
+        <button id="qrBtn" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 flex items-center justify-center text-cyan-400 transition active:scale-95 cursor-pointer" title="QR Code">
+          <i class="fa-solid fa-qrcode text-base"></i>
+        </button>
+        <!-- 音效開關 -->
+        <button id="soundBtn" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 flex items-center justify-center text-amber-300 transition active:scale-95">
+          <i class="fa-solid fa-volume-high text-base"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Canvas Container -->
+    <div id="gameBox" class="canvas-container w-full aspect-[4/5] bg-slate-950 rounded-3xl overflow-hidden border-2 border-slate-800 relative">
+      <canvas id="gameCanvas" class="w-full h-full block"></canvas>
+
+      <!-- HUD Top Bar -->
+      <div id="hud" class="absolute top-4 left-4 right-4 flex justify-between items-center pointer-events-none z-10 hidden">
+        <div class="bg-slate-900/80 backdrop-blur border border-slate-700 px-4 py-1.5 rounded-full flex items-center gap-2 shadow-md pointer-events-auto">
+          <i id="hudScoreIcon" class="fa-solid fa-heart text-red-500 animate-pulse text-lg"></i>
+          <span class="text-xs text-slate-400 font-bold uppercase">分數</span>
+          <span id="scoreDisplay" class="text-2xl font-black text-amber-400">10</span>
+        </div>
+        <div class="flex items-center gap-2 pointer-events-auto">
+          <div class="bg-slate-900/80 backdrop-blur border border-slate-700 px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-md">
+            <i class="fa-solid fa-trophy text-yellow-400 text-sm"></i>
+            <span id="highScoreDisplay" class="text-sm font-bold text-slate-300">最高: 10</span>
+          </div>
+          <!-- 結束遊戲按鈕 -->
+          <button id="endGameBtn" class="bg-rose-600 hover:bg-rose-500 active:scale-95 text-white px-3 py-1.5 rounded-full text-xs font-extrabold shadow-md transition flex items-center gap-1 cursor-pointer">
+            <i class="fa-solid fa-circle-stop"></i> 結束
+          </button>
+        </div>
+      </div>
+
+      <!-- Start Screen Overlay (主選單畫面) -->
+      <div id="startScreen" class="absolute inset-0 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-between p-6 text-center z-20">
+        <div class="my-auto flex flex-col items-center w-full">
+          <div id="startIconBg" class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-400 to-pink-500 flex items-center justify-center text-3xl text-slate-950 mb-3 shadow-lg shadow-amber-500/20 animate-bounce">
+            <i id="startIcon" class="fa-solid fa-palette"></i>
+          </div>
+          <h1 id="startTitle" class="text-2xl sm:text-3xl font-black text-white mb-1">色彩避障大冒險</h1>
+          <p id="startSubtitle" class="text-xs text-slate-400 mb-6">請選擇欲遊玩的遊戲模式：</p>
+
+          <!-- 模式選擇按鈕組 -->
+          <div class="w-full max-w-xs space-y-2.5 mb-6">
+            <button id="selectStdBtn" class="mode-select-card w-full p-3 rounded-2xl bg-slate-900 border-2 border-amber-500 text-left flex items-center gap-3 transition cursor-pointer">
+              <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-xl font-bold">🎨</div>
+              <div>
+                <div class="font-extrabold text-white text-sm">🎨 標準色彩模式</div>
+                <div class="text-[11px] text-slate-400">4色切換 / 考驗即時反應與對應能力</div>
+              </div>
+            </button>
+
+            <button id="selectEasyBtn" class="mode-select-card w-full p-3 rounded-2xl bg-slate-900 border-2 border-transparent hover:border-slate-700 text-left flex items-center gap-3 transition cursor-pointer opacity-70">
+              <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xl font-bold">🌱</div>
+              <div>
+                <div class="font-extrabold text-white text-sm">🌱 簡單色彩模式</div>
+                <div class="text-[11px] text-slate-400">僅紅藍 2 色 / 超慢降落速度 / 輕鬆上手</div>
+              </div>
+            </button>
+
+            <button id="selectRaceBtn" class="mode-select-card w-full p-3 rounded-2xl bg-slate-900 border-2 border-transparent hover:border-slate-700 text-left flex items-center gap-3 transition cursor-pointer opacity-70">
+              <div class="w-10 h-10 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-xl font-bold">🏎️</div>
+              <div>
+                <div class="font-extrabold text-white text-sm">🏎️ 復古極速賽車</div>
+                <div class="text-[11px] text-slate-400">三線道飆車 / 躲避車輛 / 收集金幣與氮氣</div>
+              </div>
+            </button>
+          </div>
+
+          <button id="startPlayBtn" class="w-full max-w-xs py-3.5 rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-500 hover:from-emerald-300 hover:to-teal-400 text-slate-950 font-black text-lg shadow-lg shadow-emerald-500/30 transition transform active:scale-95 flex items-center justify-center gap-2 cursor-pointer">
+            <i class="fa-solid fa-play"></i> 開始遊戲
+          </button>
+        </div>
+
+        <div class="text-[11px] text-slate-500 flex items-center gap-2">
+          <i class="fa-solid fa-keyboard text-slate-400"></i>
+          <span>支援鍵盤方向鍵、WASD 及數字鍵 1-4 操控</span>
+        </div>
+      </div>
+
+      <!-- Game Over Overlay -->
+      <div id="gameOverScreen" class="absolute inset-0 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-20 hidden">
+        <div class="w-20 h-20 rounded-full bg-rose-500/20 border-2 border-rose-500/50 flex items-center justify-center text-3xl text-rose-500 mb-3 animate-pulse">
+          <i class="fa-solid fa-flag-checkered"></i>
+        </div>
+        <h2 class="text-3xl font-black text-rose-400 mb-1">遊戲結束！</h2>
+        <p id="gameOverMsg" class="text-slate-400 text-xs sm:text-sm mb-4">得分已結算</p>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 w-full max-w-xs mb-6 shadow-inner flex justify-around">
+          <div>
+            <span class="text-xs text-slate-500 block">本次得分</span>
+            <span id="finalScore" class="text-3xl font-black text-amber-400">0</span>
+          </div>
+          <div class="w-px bg-slate-800"></div>
+          <div>
+            <span class="text-xs text-slate-500 block">歷史最高</span>
+            <span id="finalHighScore" class="text-3xl font-black text-emerald-400">0</span>
+          </div>
+        </div>
+
+        <div class="w-full max-w-xs space-y-2">
+          <button id="restartBtn" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-extrabold text-lg shadow-lg shadow-cyan-500/30 transition transform active:scale-95 flex items-center justify-center gap-2 cursor-pointer">
+            <i class="fa-solid fa-rotate-right"></i> 再玩一次
+          </button>
+          <button id="backToMenuBtn" class="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition cursor-pointer">
+            返回主選單
+          </button>
+        </div>
+      </div>
+
+      <!-- QR Code 彈窗 -->
+      <div id="qrModal" class="absolute inset-0 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-30 hidden">
+        <div class="bg-slate-900 border border-slate-700 p-6 rounded-3xl shadow-2xl flex flex-col items-center max-w-xs w-full relative">
+          <button id="closeQrBtn" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition cursor-pointer">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+
+          <h3 class="font-extrabold text-white text-base mb-2 flex items-center gap-2">
+            <i class="fa-solid fa-qrcode text-cyan-400"></i> QR Code 掃碼分享
+          </h3>
+
+          <!-- 沙盒環境警告提示 -->
+          <div id="sandboxWarning" class="bg-rose-500/10 border border-rose-500/40 rounded-xl p-2.5 mb-3 text-[11px] text-rose-300 text-left leading-relaxed">
+            <i class="fa-solid fa-triangle-exclamation text-rose-400 mr-1"></i>
+            <b>為什麼手機會顯示「未找到文件」？</b><br>
+            因為目前為 AI 預覽沙盒（`blob:` 臨時記憶體網址）。請先將檔案發布至 Vercel，並在下方輸入發布後的正式網址即可生成手機可掃描的 QR Code！
+          </div>
+
+          <a id="qrLink" href="#" target="_blank" class="bg-white p-3 rounded-2xl shadow-inner inline-block hover:scale-105 transition transform cursor-pointer" title="點擊直接開啟遊戲">
+            <div id="modalQrCode"></div>
+          </a>
+
+          <div class="w-full mt-3 text-left">
+            <label class="text-[11px] font-bold text-cyan-400 mb-1 block">輸入您的 Vercel / 正式網站網址：</label>
+            <input id="customUrlInput" type="text" placeholder="例如: https://my-game.vercel.app" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-200 outline-none focus:border-cyan-400 placeholder:text-slate-600" />
+          </div>
+
+          <button id="copyLinkBtn" class="mt-2 w-full py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white rounded-xl text-xs font-black shadow-md transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer">
+            <i class="fa-solid fa-copy"></i> 複製遊戲連結
+          </button>
+          <span id="copyNotice" class="text-[11px] text-emerald-400 font-bold mt-1.5 hidden">已成功複製連結！</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 色彩切換控制面板 (色彩模式專用) -->
+    <div id="colorPanel" class="w-full grid grid-cols-4 gap-2 mt-3">
+      <button class="color-select-btn h-11 rounded-xl bg-rose-500 border-2 border-white shadow-lg transition active:scale-95 flex items-center justify-center font-black text-white text-base cursor-pointer" data-color-index="0">1</button>
+      <button class="color-select-btn h-11 rounded-xl bg-sky-400 border-2 border-transparent shadow-lg opacity-70 transition active:scale-95 flex items-center justify-center font-black text-white text-base cursor-pointer" data-color-index="1">2</button>
+      <button class="color-select-btn h-11 rounded-xl bg-emerald-400 border-2 border-transparent shadow-lg opacity-70 transition active:scale-95 flex items-center justify-center font-black text-white text-base cursor-pointer" data-color-index="2">3</button>
+      <button class="color-select-btn h-11 rounded-xl bg-amber-400 border-2 border-transparent shadow-lg opacity-70 transition active:scale-95 flex items-center justify-center font-black text-white text-base cursor-pointer" data-color-index="3">4</button>
+    </div>
+
+    <!-- 電腦鍵盤風 (Keyboard Style inverted-T) 控制按鈕區 -->
+    <div class="w-full flex justify-between items-center mt-3 px-2">
+      <!-- 鍵盤風實體鍵帽 (W / A / S / D & 方向鍵) -->
+      <div class="flex flex-col items-center gap-1.5">
+        <!-- 上鍵 (W / ▲) -->
+        <button id="upTouchBtn" class="keycap w-12 h-11 rounded-xl border border-slate-600 flex flex-col items-center justify-center text-slate-200 cursor-pointer select-none">
+          <i class="fa-solid fa-caret-up text-xs"></i>
+          <span class="text-[9px] font-extrabold text-slate-400">W / ▲</span>
+        </button>
+        <div class="flex gap-1.5">
+          <!-- 左鍵 (A / ◄) -->
+          <button id="leftTouchBtn" class="keycap w-12 h-11 rounded-xl border border-slate-600 flex flex-col items-center justify-center text-slate-200 cursor-pointer select-none">
+            <i class="fa-solid fa-caret-left text-xs"></i>
+            <span class="text-[9px] font-extrabold text-slate-400">A / ◄</span>
+          </button>
+          <!-- 下鍵 (S / ▼) -->
+          <button id="downTouchBtn" class="keycap w-12 h-11 rounded-xl border border-slate-600 flex flex-col items-center justify-center text-slate-200 cursor-pointer select-none">
+            <i class="fa-solid fa-caret-down text-xs"></i>
+            <span class="text-[9px] font-extrabold text-slate-400">S / ▼</span>
+          </button>
+          <!-- 右鍵 (D / ►) -->
+          <button id="rightTouchBtn" class="keycap w-12 h-11 rounded-xl border border-slate-600 flex flex-col items-center justify-center text-slate-200 cursor-pointer select-none">
+            <i class="fa-solid fa-caret-right text-xs"></i>
+            <span class="text-[9px] font-extrabold text-slate-400">D / ►</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="text-right text-[11px] text-slate-400 leading-relaxed font-bold bg-slate-900/60 border border-slate-800 p-2.5 rounded-xl">
+        <p><span class="text-cyan-400">↑ ↓ ← →</span> 或 <span class="text-amber-400">W A S D</span> 移動</p>
+        <p id="keyHint2"><span class="text-emerald-400">1 ~ 4</span> 切換對應顏色標靶</p>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // Color definitions
+    const COLORS = [
+      { name: 'Red', hex: '#f43f5e', glow: 'rgba(244, 63, 94, 0.6)' },
+      { name: 'Blue', hex: '#38bdf8', glow: 'rgba(56, 189, 248, 0.6)' },
+      { name: 'Green', hex: '#34d399', glow: 'rgba(52, 211, 153, 0.6)' },
+      { name: 'Yellow', hex: '#fbbf24', glow: 'rgba(251, 191, 36, 0.6)' }
+    ];
+
+    // DOM Elements
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const gameBox = document.getElementById('gameBox');
+
+    const startScreen = document.getElementById('startScreen');
+    const gameOverScreen = document.getElementById('gameOverScreen');
+    const startPlayBtn = document.getElementById('startPlayBtn');
+    const restartBtn = document.getElementById('restartBtn');
+    const backToMenuBtn = document.getElementById('backToMenuBtn');
+    const endGameBtn = document.getElementById('endGameBtn');
+    const modeSwitchBtn = document.getElementById('modeSwitchBtn');
+    const hud = document.getElementById('hud');
+    const scoreDisplay = document.getElementById('scoreDisplay');
+    const highScoreDisplay = document.getElementById('highScoreDisplay');
+    const finalScore = document.getElementById('finalScore');
+    const finalHighScore = document.getElementById('finalHighScore');
+    const gameOverMsg = document.getElementById('gameOverMsg');
+    const soundBtn = document.getElementById('soundBtn');
+    const colorPanel = document.getElementById('colorPanel');
+    const colorBtns = document.querySelectorAll('.color-select-btn');
+    const keyHint2 = document.getElementById('keyHint2');
+
+    const selectStdBtn = document.getElementById('selectStdBtn');
+    const selectEasyBtn = document.getElementById('selectEasyBtn');
+    const selectRaceBtn = document.getElementById('selectRaceBtn');
+    const startIconBg = document.getElementById('startIconBg');
+    const startIcon = document.getElementById('startIcon');
+    const startTitle = document.getElementById('startTitle');
+    const startSubtitle = document.getElementById('startSubtitle');
+
+    const gameTitleText = document.getElementById('gameTitleText');
+    const gameIcon = document.getElementById('gameIcon');
+    const hudScoreIcon = document.getElementById('hudScoreIcon');
+
+    // Keycap buttons
+    const upTouchBtn = document.getElementById('upTouchBtn');
+    const downTouchBtn = document.getElementById('downTouchBtn');
+    const leftTouchBtn = document.getElementById('leftTouchBtn');
+    const rightTouchBtn = document.getElementById('rightTouchBtn');
+
+    // QR Modal elements
+    const qrBtn = document.getElementById('qrBtn');
+    const qrModal = document.getElementById('qrModal');
+    const closeQrBtn = document.getElementById('closeQrBtn');
+    const modalQrCode = document.getElementById('modalQrCode');
+    const qrLink = document.getElementById('qrLink');
+    const customUrlInput = document.getElementById('customUrlInput');
+    const copyLinkBtn = document.getElementById('copyLinkBtn');
+    const copyNotice = document.getElementById('copyNotice');
+
+    // Game Variables
+    let currentMode = 'std'; // 'std', 'easy', 'race'
+    let gameState = 'START'; // 'START', 'PLAYING', 'GAMEOVER'
+    let score = 10;
+    let highScores = { std: 10, easy: 10, race: 10 };
+    let animId = null;
+    let soundEnabled = true;
+
+    // Load High Scores
+    try {
+      const saved = localStorage.getItem('color_game_high_scores');
+      if (saved) highScores = Object.assign(highScores, JSON.parse(saved));
+    } catch(e) {}
+
+    // Input States
+    const keys = { up: false, down: false, left: false, right: false };
+
+    // Canvas Sizing
+    function resizeCanvas() {
+      const rect = gameBox.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // Player Object
+    let player = {
+      x: 0,
+      y: 0,
+      radius: 20,
+      speed: 6,
+      colorIndex: 0
+    };
+
+    // Game Entities
+    let targets = [];
+    let particles = [];
+    let raceRoadOffset = 0;
+    let raceEnemies = [];
+    let racePickups = [];
+
+    // 高能量衝擊感 Web Audio (Tone.js Multi-Synthesizer SFX Engine)
+    let mainSynth = null;
+    let hitSynth = null;
+    let noiseSynth = null;
+    let laserSynth = null;
+
+    function initAudio() {
+      if (!mainSynth && typeof Tone !== 'undefined') {
+        try {
+          Tone.start();
+
+          // 1. 鋸齒波 8-Bit 主音色（清脆明亮的得分與琶音）
+          mainSynth = new Tone.PolySynth(Tone.Synth, {
+            oscillator: { type: 'sawtooth' },
+            envelope: { attack: 0.005, decay: 0.08, sustain: 0.1, release: 0.08 }
+          }).toDestination();
+          mainSynth.volume.value = -6;
+
+          // 2. 超低頻膜合成器（強烈打擊與爆炸震撼重低音）
+          hitSynth = new Tone.MembraneSynth({
+            pitchDecay: 0.08,
+            octaves: 10,
+            oscillator: { type: 'sine' },
+            envelope: { attack: 0.001, decay: 0.35, sustain: 0.01, release: 0.4 }
+          }).toDestination();
+          hitSynth.volume.value = 6;
+
+          // 3. 白噪音金屬撕裂器（衝撞與碎裂顆粒感）
+          noiseSynth = new Tone.NoiseSynth({
+            noise: { type: 'white' },
+            envelope: { attack: 0.001, decay: 0.18, sustain: 0 }
+          }).toDestination();
+          noiseSynth.volume.value = -2;
+
+          // 4. 飆速衝刺雷射掃描器（頻率向下/向上快速滑音）
+          laserSynth = new Tone.Synth({
+            oscillator: { type: 'triangle' },
+            envelope: { attack: 0.005, decay: 0.2, sustain: 0.1, release: 0.1 }
+          }).toDestination();
+          laserSynth.volume.value = -2;
+
+        } catch(e) {}
+      }
+    }
+
+    function playSFX(type) {
+      if (!soundEnabled || typeof Tone === 'undefined') return;
+      initAudio();
+      const now = Tone.now();
+      try {
+        if (type === 'match') {
+          // 🔥 刺激的 8-Bit 超快升調琶音 (E5 -> G#5 -> B5 -> E6)
+          if (mainSynth) {
+            mainSynth.triggerAttackRelease(["E5", "G#5", "B5", "E6"], "32n", now);
+          }
+        } else if (type === 'hit') {
+          // 💥 沉重爆炸衝擊：重低音震撼 + 白噪音金屬破裂感
+          if (hitSynth) hitSynth.triggerAttackRelease("C1", "8n", now);
+          if (noiseSynth) noiseSynth.triggerAttackRelease("16n", now);
+        } else if (type === 'coin') {
+          // 🪙 街機金幣硬幣聲
+          if (mainSynth) {
+            mainSynth.triggerAttackRelease("B5", "32n", now);
+            mainSynth.triggerAttackRelease("E6", "16n", now + 0.04);
+          }
+        } else if (type === 'boost') {
+          // ⚡ 超頻氮氣加速：頻率從 260Hz 快速掃頻飆升至 2000Hz 雷射音
+          if (laserSynth) {
+            laserSynth.frequency.setValueAtTime("C4", now);
+            laserSynth.frequency.exponentialRampToValueAtTime("C7", now + 0.22);
+            laserSynth.triggerAttackRelease("C7", "0.22", now);
+          }
+        } else if (type === 'over') {
+          // 🏁 遊戲結束：深沉下墜音 + 敗北重音撞擊
+          if (hitSynth) hitSynth.triggerAttackRelease("A0", "4n", now);
+          if (mainSynth) {
+            mainSynth.triggerAttackRelease(["D4", "F4", "G#4"], "8n", now);
+            mainSynth.triggerAttackRelease(["C4", "D#4", "F#4"], "4n", now + 0.12);
+          }
+        } else if (type === 'click') {
+          // 🎹 機械按鍵按壓啪嗒聲
+          if (mainSynth) mainSynth.triggerAttackRelease("C6", "64n", now);
+        }
+      } catch(e) {}
+    }
+
+    // Toggle Sound Button
+    soundBtn.addEventListener('click', () => {
+      soundEnabled = !soundEnabled;
+      soundBtn.innerHTML = soundEnabled 
+        ? '<i class="fa-solid fa-volume-high text-base"></i>' 
+        : '<i class="fa-solid fa-volume-xmark text-base text-slate-500"></i>';
+    });
+
+    // Color Selector Panel Click
+    colorBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        initAudio();
+        const idx = parseInt(btn.getAttribute('data-color-index'));
+        selectColor(idx);
+      });
+    });
+
+    function selectColor(idx) {
+      if (currentMode === 'easy' && idx > 1) return; // Easy mode only uses 2 colors
+      player.colorIndex = idx;
+      playSFX('click');
+      colorBtns.forEach((b, i) => {
+        if (i === idx) {
+          b.classList.remove('opacity-70', 'border-transparent');
+          b.classList.add('border-white', 'scale-105');
+        } else {
+          b.classList.add('opacity-70', 'border-transparent');
+          b.classList.remove('border-white', 'scale-105');
+        }
+      });
+    }
+
+    // Keycap / Touch Button Handlers
+    function bindTouchKey(btn, keyProp) {
+      const start = (e) => {
+        e.preventDefault();
+        initAudio();
+        playSFX('click');
+        keys[keyProp] = true;
+        btn.classList.add('key-active');
+      };
+      const end = (e) => {
+        e.preventDefault();
+        keys[keyProp] = false;
+        btn.classList.remove('key-active');
+      };
+
+      btn.addEventListener('pointerdown', start);
+      btn.addEventListener('pointerup', end);
+      btn.addEventListener('pointercancel', end);
+      btn.addEventListener('pointerleave', end);
+    }
+
+    bindTouchKey(upTouchBtn, 'up');
+    bindTouchKey(downTouchBtn, 'down');
+    bindTouchKey(leftTouchBtn, 'left');
+    bindTouchKey(rightTouchBtn, 'right');
+
+    // Global Keyboard Listeners
+    window.addEventListener('keydown', (e) => {
+      initAudio();
+      if (['ArrowUp', 'KeyW'].includes(e.code)) { keys.up = true; upTouchBtn.classList.add('key-active'); }
+      if (['ArrowDown', 'KeyS'].includes(e.code)) { keys.down = true; downTouchBtn.classList.add('key-active'); }
+      if (['ArrowLeft', 'KeyA'].includes(e.code)) { keys.left = true; leftTouchBtn.classList.add('key-active'); }
+      if (['ArrowRight', 'KeyD'].includes(e.code)) { keys.right = true; rightTouchBtn.classList.add('key-active'); }
+
+      if (['Digit1', 'Numpad1'].includes(e.code)) selectColor(0);
+      if (['Digit2', 'Numpad2'].includes(e.code)) selectColor(1);
+      if (['Digit3', 'Numpad3'].includes(e.code)) selectColor(2);
+      if (['Digit4', 'Numpad4'].includes(e.code)) selectColor(3);
+
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) {
+        if (document.activeElement === document.body) e.preventDefault();
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      if (['ArrowUp', 'KeyW'].includes(e.code)) { keys.up = false; upTouchBtn.classList.remove('key-active'); }
+      if (['ArrowDown', 'KeyS'].includes(e.code)) { keys.down = false; downTouchBtn.classList.remove('key-active'); }
+      if (['ArrowLeft', 'KeyA'].includes(e.code)) { keys.left = false; leftTouchBtn.classList.remove('key-active'); }
+      if (['ArrowRight', 'KeyD'].includes(e.code)) { keys.right = false; rightTouchBtn.classList.remove('key-active'); }
+    });
+
+    window.addEventListener('blur', () => {
+      keys.up = keys.down = keys.left = keys.right = false;
+      [upTouchBtn, downTouchBtn, leftTouchBtn, rightTouchBtn].forEach(b => b.classList.remove('key-active'));
+    });
+
+    // Mode Selection Handler in Start Screen
+    function setMode(mode) {
+      currentMode = mode;
+      [selectStdBtn, selectEasyBtn, selectRaceBtn].forEach(b => {
+        b.classList.add('border-transparent', 'opacity-70');
+        b.classList.remove('border-amber-500', 'border-emerald-500', 'border-cyan-500');
+      });
+
+      if (mode === 'std') {
+        selectStdBtn.classList.remove('border-transparent', 'opacity-70');
+        selectStdBtn.classList.add('border-amber-500');
+        gameTitleText.innerText = "色彩避障 (標準)";
+        gameIcon.className = "fa-solid fa-palette text-amber-400 text-xl";
+        colorPanel.classList.remove('hidden');
+        keyHint2.innerHTML = '<span class="text-emerald-400">1 ~ 4</span> 切換對應顏色標靶';
+      } else if (mode === 'easy') {
+        selectEasyBtn.classList.remove('border-transparent', 'opacity-70');
+        selectEasyBtn.classList.add('border-emerald-500');
+        gameTitleText.innerText = "色彩避障 (簡單)";
+        gameIcon.className = "fa-solid fa-seedling text-emerald-400 text-xl";
+        colorPanel.classList.remove('hidden');
+        keyHint2.innerHTML = '<span class="text-emerald-400">1 ~ 2</span> 切換對應顏色標靶';
+      } else if (mode === 'race') {
+        selectRaceBtn.classList.remove('border-transparent', 'opacity-70');
+        selectRaceBtn.classList.add('border-cyan-500');
+        gameTitleText.innerText = "復古極速賽車";
+        gameIcon.className = "fa-solid fa-car-side text-cyan-400 text-xl";
+        colorPanel.classList.add('hidden');
+        keyHint2.innerHTML = '避開障礙車輛，收集 <span class="text-yellow-400">🪙</span> 與 <span class="text-cyan-400">⚡</span>';
+      }
+    }
+
+    selectStdBtn.addEventListener('click', () => setMode('std'));
+    selectEasyBtn.addEventListener('click', () => setMode('easy'));
+    selectRaceBtn.addEventListener('click', () => setMode('race'));
+
+    // Top Header Switch Button -> Return to Menu to Switch Mode
+    modeSwitchBtn.addEventListener('click', () => {
+      gameState = 'START';
+      if (animId) cancelAnimationFrame(animId);
+      hud.classList.add('hidden');
+      gameOverScreen.classList.add('hidden');
+      startScreen.classList.remove('hidden');
+    });
+
+    // Start Game Function
+    function startGame() {
+      initAudio();
+      gameState = 'PLAYING';
+      score = 10;
+      scoreDisplay.innerText = score;
+      highScoreDisplay.innerText = `最高: ${highScores[currentMode] || 10}`;
+
+      player.x = canvas.width / 2;
+      player.y = canvas.height * 0.75;
+      player.radius = currentMode === 'easy' ? 24 : 20;
+      player.speed = currentMode === 'race' ? 7 : (currentMode === 'easy' ? 7 : 6);
+      player.colorIndex = 0;
+
+      selectColor(0);
+      targets = [];
+      particles = [];
+      raceEnemies = [];
+      racePickups = [];
+
+      startScreen.classList.add('hidden');
+      gameOverScreen.classList.add('hidden');
+      hud.classList.remove('hidden');
+
+      if (animId) cancelAnimationFrame(animId);
+      lastTime = performance.now();
+      gameLoop();
+    }
+
+    startPlayBtn.addEventListener('click', startGame);
+    restartBtn.addEventListener('click', startGame);
+    backToMenuBtn.addEventListener('click', () => {
+      gameOverScreen.classList.add('hidden');
+      startScreen.classList.remove('hidden');
+    });
+
+    endGameBtn.addEventListener('click', triggerGameOver);
+
+    function triggerGameOver() {
+      gameState = 'GAMEOVER';
+      hud.classList.add('hidden');
+      playSFX('over');
+
+      if (score > (highScores[currentMode] || 0)) {
+        highScores[currentMode] = score;
+        try { localStorage.setItem('color_game_high_scores', JSON.stringify(highScores)); } catch(e){}
+      }
+
+      finalScore.innerText = score;
+      finalHighScore.innerText = highScores[currentMode];
+      gameOverMsg.innerText = currentMode === 'race' ? "賽車碰撞失控！" : "生命分數已被耗盡";
+      gameOverScreen.classList.remove('hidden');
+    }
+
+    // Spawn Entities
+    let lastSpawn = 0;
+    function spawnEntities(now) {
+      if (currentMode === 'race') {
+        // Racing Enemies & Pickups
+        if (now - lastSpawn > 800) {
+          lastSpawn = now;
+          const laneW = canvas.width / 3;
+          const lane = Math.floor(Math.random() * 3);
+          const x = lane * laneW + laneW / 2;
+
+          if (Math.random() < 0.75) {
+            raceEnemies.push({
+              x: x,
+              y: -50,
+              width: 34,
+              height: 55,
+              speed: 4 + Math.random() * 3,
+              color: ['#f43f5e', '#a855f7', '#ec4899'][Math.floor(Math.random() * 3)]
+            });
+          } else {
+            racePickups.push({
+              x: x,
+              y: -30,
+              radius: 14,
+              type: Math.random() < 0.7 ? 'coin' : 'nitro',
+              speed: 4
+            });
+          }
+        }
+      } else {
+        // Color Dodge Targets
+        const spawnInterval = currentMode === 'easy' ? 1400 : 900;
+        if (now - lastSpawn > spawnInterval) {
+          lastSpawn = now;
+          const maxColors = currentMode === 'easy' ? 2 : 4;
+          const colorIdx = Math.floor(Math.random() * maxColors);
+          targets.push({
+            x: Math.random() * (canvas.width - 60) + 30,
+            y: -30,
+            radius: currentMode === 'easy' ? 22 : 18,
+            colorIndex: colorIdx,
+            speed: currentMode === 'easy' ? 2.2 : (3 + Math.random() * 2)
+          });
+        }
+      }
+    }
+
+    // Particle Burst Effect
+    function createParticles(x, y, colorHex) {
+      for (let i = 0; i < 12; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const spd = Math.random() * 5 + 2;
+        particles.push({
+          x: x, y: y,
+          vx: Math.cos(angle) * spd,
+          vy: Math.sin(angle) * spd,
+          life: 1,
+          color: colorHex
+        });
+      }
+    }
+
+    // Main Game Loop
+    let lastTime = 0;
+    function gameLoop(now = performance.now()) {
+      if (gameState !== 'PLAYING') return;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Player Movement Logic
+      if (keys.up) player.y -= player.speed;
+      if (keys.down) player.y += player.speed;
+      if (keys.left) player.x -= player.speed;
+      if (keys.right) player.x += player.speed;
+
+      // Keep Player within Boundaries
+      player.x = Math.max(player.radius + 5, Math.min(canvas.width - player.radius - 5, player.x));
+      player.y = Math.max(player.radius + 5, Math.min(canvas.height - player.radius - 5, player.y));
+
+      spawnEntities(now);
+
+      if (currentMode === 'race') {
+        // RENDER RACING MODE
+        raceRoadOffset = (raceRoadOffset + 6) % 40;
+        const laneW = canvas.width / 3;
+
+        // Road lines
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+        ctx.lineWidth = 4;
+        ctx.setLineDash([20, 20]);
+        ctx.lineDashOffset = -raceRoadOffset;
+
+        ctx.beginPath();
+        ctx.moveTo(laneW, 0); ctx.lineTo(laneW, canvas.height);
+        ctx.moveTo(laneW * 2, 0); ctx.lineTo(laneW * 2, canvas.height);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Render Pickups
+        for (let i = racePickups.length - 1; i >= 0; i--) {
+          const p = racePickups[i];
+          p.y += p.speed;
+
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+          ctx.fillStyle = p.type === 'coin' ? '#fbbf24' : '#38bdf8';
+          ctx.fill();
+          ctx.shadowBlur = 10;
+          ctx.shadowColor = p.type === 'coin' ? '#fbbf24' : '#38bdf8';
+          ctx.fill();
+          ctx.shadowBlur = 0;
+
+          ctx.fillStyle = '#0f172a';
+          ctx.font = 'bold 12px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(p.type === 'coin' ? '🪙' : '⚡', p.x, p.y);
+
+          // Check Collision with Player Car
+          const dx = player.x - p.x;
+          const dy = player.y - p.y;
+          if (Math.hypot(dx, dy) < player.radius + p.radius) {
+            if (p.type === 'coin') {
+              score += 2;
+              playSFX('coin');
+              createParticles(p.x, p.y, '#fbbf24');
+            } else {
+              score += 5;
+              playSFX('boost');
+              createParticles(p.x, p.y, '#38bdf8');
+            }
+            scoreDisplay.innerText = score;
+            racePickups.splice(i, 1);
+          } else if (p.y > canvas.height + 40) {
+            racePickups.splice(i, 1);
+          }
+        }
+
+        // Render Enemy Cars
+        for (let i = raceEnemies.length - 1; i >= 0; i--) {
+          const e = raceEnemies[i];
+          e.y += e.speed;
+
+          ctx.fillStyle = e.color;
+          ctx.beginPath();
+          ctx.roundRect(e.x - e.width / 2, e.y - e.height / 2, e.width, e.height, 8);
+          ctx.fill();
+
+          // Headlights
+          ctx.fillStyle = '#ffff88';
+          ctx.fillRect(e.x - e.width / 2 + 4, e.y + e.height / 2 - 6, 6, 4);
+          ctx.fillRect(e.x + e.width / 2 - 10, e.y + e.height / 2 - 6, 6, 4);
+
+          // Collision Detection
+          if (Math.abs(player.x - e.x) < (player.radius + e.width / 2) &&
+              Math.abs(player.y - e.y) < (player.radius + e.height / 2)) {
+            score -= 3;
+            playSFX('hit');
+            gameBox.classList.add('shake');
+            setTimeout(() => gameBox.classList.remove('shake'), 300);
+            createParticles(e.x, e.y, e.color);
+            raceEnemies.splice(i, 1);
+            scoreDisplay.innerText = score;
+
+            if (score <= 0) {
+              triggerGameOver();
+              return;
+            }
+          } else if (e.y > canvas.height + 60) {
+            raceEnemies.splice(i, 1);
+          }
+        }
+
+        // Render Player Car
+        ctx.fillStyle = '#38bdf8';
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = '#38bdf8';
+        ctx.beginPath();
+        ctx.roundRect(player.x - 18, player.y - 25, 36, 50, 8);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // Windshield & Wheels
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(player.x - 14, player.y - 10, 28, 14);
+        ctx.fillStyle = '#f43f5e';
+        ctx.fillRect(player.x - 14, player.y + 20, 6, 4);
+        ctx.fillRect(player.x + 8, player.y + 20, 6, 4);
+
+      } else {
+        // RENDER COLOR DODGE MODE (Std / Easy)
+
+        // Background Subtle Grid
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+        ctx.lineWidth = 1;
+        for (let x = 0; x < canvas.width; x += 40) {
+          ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+        }
+        for (let y = 0; y < canvas.height; y += 40) {
+          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+        }
+
+        // Render Targets
+        for (let i = targets.length - 1; i >= 0; i--) {
+          const t = targets[i];
+          t.y += t.speed;
+
+          const c = COLORS[t.colorIndex];
+          ctx.beginPath();
+          ctx.arc(t.x, t.y, t.radius, 0, Math.PI * 2);
+          ctx.fillStyle = c.hex;
+          ctx.shadowBlur = 12;
+          ctx.shadowColor = c.glow;
+          ctx.fill();
+          ctx.shadowBlur = 0;
+
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 12px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(t.colorIndex + 1, t.x, t.y);
+
+          // Check Collision with Player
+          const dx = player.x - t.x;
+          const dy = player.y - t.y;
+          const dist = Math.hypot(dx, dy);
+
+          if (dist < player.radius + t.radius) {
+            if (player.colorIndex === t.colorIndex) {
+              score += 1;
+              playSFX('match');
+              createParticles(t.x, t.y, c.hex);
+            } else {
+              score -= 1;
+              playSFX('hit');
+              gameBox.classList.add('shake');
+              setTimeout(() => gameBox.classList.remove('shake'), 300);
+            }
+
+            scoreDisplay.innerText = score;
+            targets.splice(i, 1);
+
+            if (score <= 0) {
+              triggerGameOver();
+              return;
+            }
+          } else if (t.y > canvas.height + 40) {
+            targets.splice(i, 1);
+          }
+        }
+
+        // Render Player Circle
+        const playerColor = COLORS[player.colorIndex];
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+        ctx.fillStyle = playerColor.hex;
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = playerColor.glow;
+        ctx.fill();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#ffffff';
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        // Number Badge inside Player
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 14px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(player.colorIndex + 1, player.x, player.y);
+      }
+
+      // Render Burst Particles
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const pt = particles[i];
+        pt.x += pt.vx;
+        pt.y += pt.vy;
+        pt.life -= 0.04;
+
+        if (pt.life <= 0) {
+          particles.splice(i, 1);
+        } else {
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, Math.max(1, 4 * pt.life), 0, Math.PI * 2);
+          ctx.fillStyle = pt.color;
+          ctx.globalAlpha = pt.life;
+          ctx.fill();
+          ctx.globalAlpha = 1.0;
+        }
+      }
+
+      animId = requestAnimationFrame(gameLoop);
+    }
+
+    // QR Code Modal Functions
+    let qrGenerated = false;
+    function generateModalQR() {
+      if (qrGenerated) return;
+      const currentUrl = window.location.href;
+      const isSandbox = currentUrl.startsWith('blob:') || currentUrl.includes('sandbox') || currentUrl.startsWith('file:');
+      const sandboxWarning = document.getElementById('sandboxWarning');
+
+      // 判斷是否在 AI 沙盒預覽環境中
+      if (sandboxWarning) {
+        if (isSandbox) {
+          sandboxWarning.classList.remove('hidden');
+        } else {
+          sandboxWarning.classList.add('hidden');
+        }
+      }
+
+      if (qrLink) qrLink.href = currentUrl;
+
+      function renderQR(targetUrl) {
+        modalQrCode.innerHTML = '';
+        if (typeof QRCode !== 'undefined') {
+          new QRCode(modalQrCode, {
+            text: targetUrl,
+            width: 180,
+            height: 180,
+            colorDark: "#0f172a",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
+          });
+        } else {
+          const img = document.createElement('img');
+          img.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(targetUrl)}`;
+          img.className = 'w-45 h-45 rounded-lg';
+          modalQrCode.appendChild(img);
+        }
+      }
+
+      renderQR(currentUrl);
+
+      if (customUrlInput) {
+        customUrlInput.addEventListener('input', (e) => {
+          const val = e.target.value.trim();
+          const target = val || currentUrl;
+          renderQR(target);
+          if (qrLink) qrLink.href = target;
+        });
+      }
+
+      if (copyLinkBtn) {
+        copyLinkBtn.onclick = () => {
+          const urlToCopy = (customUrlInput && customUrlInput.value.trim()) ? customUrlInput.value.trim() : currentUrl;
+          const dummy = document.createElement('textarea');
+          document.body.appendChild(dummy);
+          dummy.value = urlToCopy;
+          dummy.select();
+          document.execCommand('copy');
+          document.body.removeChild(dummy);
+          if (copyNotice) {
+            copyNotice.classList.remove('hidden');
+            setTimeout(() => copyNotice.classList.add('hidden'), 2000);
+          }
+        };
+      }
+
+      qrGenerated = true;
+    }
+
+    if (qrBtn) {
+      qrBtn.addEventListener('click', () => {
+        generateModalQR();
+        qrModal.classList.remove('hidden');
+      });
+    }
+
+    if (closeQrBtn) {
+      closeQrBtn.addEventListener('click', () => {
+        qrModal.classList.add('hidden');
+      });
+    }
+
+    // Default initialization
+    setMode('std');
+  </script>
+</body>
+</html>
